@@ -1,9 +1,10 @@
-import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
+import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { LayoutDashboard } from "lucide-react";
 import { IconBadge } from "@/components/icon-badge";
 import { TitleForm } from "./_components/title-form";
+import { DescriptionForm } from "./_components/description-form";
 
 const CourseIdPage = async ({ params }: { params: { courseId: string } }) => {
   const { userId } = await auth();
@@ -53,6 +54,7 @@ const CourseIdPage = async ({ params }: { params: { courseId: string } }) => {
             <h2 className="text-xl">Customize your course</h2>
           </div>
           <TitleForm initialData={course} courseId={course.id} />
+          <DescriptionForm initialData={course} courseId={course.id} />
         </div>
       </div>
     </div>
