@@ -8,7 +8,7 @@ import { Attachment, Course } from "@prisma/client";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { FileUpload } from "@/components/file-upload";
-import { PlusCircle } from "lucide-react";
+import { File, Loader2, PlusCircle, X } from "lucide-react";
 
 interface AttachmentsFormProps {
   initialData: Course & { attachments: Attachment[] };
@@ -24,6 +24,7 @@ export const AttachmentsForm = ({
   courseId,
 }: AttachmentsFormProps) => {
   const [isEditing, setIsEditing] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const toggleEdit = () => setIsEditing((current) => !current);
 
@@ -32,11 +33,24 @@ export const AttachmentsForm = ({
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       await axios.post(`/api/courses/${courseId}/attachments`, values);
-      toast.success("Course Image Uploaded");
+      toast.success("Course Attachment Uploaded");
       toggleEdit();
       router.refresh();
     } catch {
       toast.error("Something went wrong");
+    }
+  };
+
+  const onDelete = async (id: string) => {
+    try {
+      setDeletingId(id);
+      await axios.delete(`/api/courses/${courseId}/attachments/${id}`);
+      toast.success("Attachment deleted");
+      router.refresh();
+    } catch {
+      toast.error("Something went wrong");
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -60,6 +74,32 @@ export const AttachmentsForm = ({
             <p className="text-sm mt-2 text-slate-500 italic">
               No attachments yet
             </p>
+          )}
+          {initialData.attachments.length > 0 && (
+            <div className="space-y-2">
+              {initialData.attachments.map((attachment) => (
+                <div
+                  key={attachment.id}
+                  className="flex items-center p-3 w-full bg-sky-100 border-sky-200 border text-sky-700 rounded-md"
+                >
+                  <File className="h-4 w-4 mr-2 flex-shrink-0" />
+                  <p className="text-xs line-clamp-1">{attachment.name}</p>
+                  {deletingId === attachment.id && (
+                    <div className="ml-auto">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    </div>
+                  )}
+                  {deletingId !== attachment.id && (
+                    <button
+                      onClick={() => onDelete(attachment.id)}
+                      className="ml-auto hover:opacity-75 transition hover:cursor-pointer"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
           )}
         </>
       )}
