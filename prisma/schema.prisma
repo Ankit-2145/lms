@@ -19,7 +19,7 @@ model Course {
   categoryId String?
   category   Category? @relation(fields: [categoryId], references: [id])
 
-  Chapters    Chapter[]
+  chapters    Chapter[]
   attachments Attachment[]
   purchases   Purchase[]
 
@@ -85,7 +85,7 @@ model UserProgress {
   userId String
 
   chapterId String
-  Chapter   Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  chapter   Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
 
   isCompleted Boolean @default(false)
 
