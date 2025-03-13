@@ -22,3 +22,4 @@ export const FileUpload = ({ onChange, endpoint }: FileUploadProps) => {
     />
   );
 };
+
