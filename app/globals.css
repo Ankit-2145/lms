@@ -3,7 +3,7 @@
 @import "tailwindcss";
 
 @import "uploadthing/tw/v4";
-@source "../node_modules/@uploadthing/react/dist"; /** <-- depends on your project structure */
+@source "../node_modules/@uploadthing/react/dist";
 
 @plugin "tailwindcss-animate";
 
@@ -131,4 +131,8 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+.ql-container {
+  font-size: 16px !important;
 }
