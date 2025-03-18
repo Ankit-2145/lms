@@ -2,7 +2,6 @@ import { db } from "@/lib/db";
 import Mux from "@mux/mux-node";
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { use } from "react";
 
 const { video } = new Mux({
   tokenId: process.env.MUX_TOKEN_ID,
