@@ -1,12 +1,15 @@
-import { getChapter } from "@/actions/get-chapter";
-import { Banner } from "@/components/banner";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { VideoPlayer } from "./_components/video-player";
-import { CourseEnrollButton } from "./_components/course-enroll-button";
+import { File } from "lucide-react";
+
+import { getChapter } from "@/actions/get-chapter";
+import { Banner } from "@/components/banner";
 import { Separator } from "@/components/ui/separator";
 import { Preview } from "@/components/preview";
-import { File } from "lucide-react";
+
+import { VideoPlayer } from "./_components/video-player";
+import { CourseEnrollButton } from "./_components/course-enroll-button";
+import { CourseProgressButton } from "./_components/course-progress-button";
 
 const ChapterIdPage = async ({
   params,
@@ -68,7 +71,12 @@ const ChapterIdPage = async ({
         <div className="p-4 flex flex-col md:flex-row items-center justify-between">
           <h2 className="text-2xl font-semibold mb-2">{chapter.title}</h2>
           {purchase ? (
-            <div>{/*TODO: add CourseEnrollButton*/}</div>
+            <CourseProgressButton
+              chapterId={chapterId}
+              courseId={courseId}
+              nextChapterId={nextChapter?.id}
+              isCompleted={!!userProgress?.isCompleted}
+            />
           ) : (
             <CourseEnrollButton courseId={courseId} price={course.price!} />
           )}
