@@ -1,49 +1,60 @@
-import Stripe from "stripe";
-
-import { headers } from "next/headers";
+import crypto from "crypto";
 import { NextResponse } from "next/server";
-
-import { stripe } from "@/lib/stripe";
 import { db } from "@/lib/db";
 
+// Must use req.text() because Razorpay sends raw body
 export async function POST(req: Request) {
-  const body = await req.text();
-  const signature = (await headers()).get("Stripe-Signature") as string;
-
-  let event: Stripe.Event;
-
   try {
-    event = stripe.webhooks.constructEvent(
-      body,
-      signature,
-      process.env.STRIPE_WEBHOOK_SECRET!
-    );
-  } catch (error: any) {
-    return new NextResponse(`Webhook Error: ${error.message}`, { status: 400 });
-  }
+    const secret = process.env.RAZORPAY_KEY_SECRET!;
+    const rawBody = await req.text();
+    const razorpaySignature = req.headers.get("x-razorpay-signature") ?? "";
 
-  const session = event.data.object as Stripe.Checkout.Session;
-  const userId = session?.metadata?.userId;
-  const courseId = session?.metadata?.courseId;
+    // Verify signature
+    const expectedSignature = crypto
+      .createHmac("sha256", secret)
+      .update(rawBody)
+      .digest("hex");
 
-  if (event.type === "checkout.session.completed") {
-    if (!userId || !courseId) {
-      return new NextResponse(`Webhook Error: Missing metadata`, {
-        status: 400,
-      });
+    if (expectedSignature !== razorpaySignature) {
+      return new NextResponse("Invalid signature", { status: 400 });
     }
-    await db.purchase.create({
-      data: {
-        courseId: courseId,
-        userId: userId,
-      },
-    });
-  } else {
-    return new NextResponse(
-      `Webhook Error: Unhandled event type ${event.type}`,
-      { status: 200 }
-    );
-  }
 
-  return new NextResponse(null, { status: 200 });
+    const event = JSON.parse(rawBody);
+
+    // We only care about successful payments
+    if (event.event === "payment.captured") {
+      const payment = event.payload.payment.entity;
+
+      const courseId = payment.notes?.courseId;
+      const userId = payment.notes?.userId;
+
+      if (!courseId || !userId) {
+        return new NextResponse("Missing metadata", { status: 400 });
+      }
+
+      // Create purchase (if not already exists)
+      const existing = await db.purchase.findUnique({
+        where: {
+          userId_courseId: {
+            userId,
+            courseId,
+          },
+        },
+      });
+
+      if (!existing) {
+        await db.purchase.create({
+          data: {
+            courseId,
+            userId,
+          },
+        });
+      }
+    }
+
+    return new NextResponse("Webhook received", { status: 200 });
+  } catch (error) {
+    console.error("[RAZORPAY_WEBHOOK_ERROR]", error);
+    return new NextResponse("Internal server error", { status: 500 });
+  }
 }

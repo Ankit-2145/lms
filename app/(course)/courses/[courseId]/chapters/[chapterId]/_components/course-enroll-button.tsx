@@ -1,10 +1,9 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { formatPrice } from "@/lib/format";
-import axios from "axios";
 import { useState } from "react";
 import toast from "react-hot-toast";
+import { formatPrice } from "@/lib/format";
+import { Button } from "@/components/ui/button";
 
 interface CourseEnrollButtonProps {
   price: number;
@@ -21,9 +20,54 @@ export const CourseEnrollButton = ({
     try {
       setIsLoading(true);
 
-      const response = await axios.post(`/api/courses/${courseId}/checkout`);
-      window.location.assign(response.data.url);
-    } catch {
+      const res = await fetch(`/api/courses/${courseId}/checkout`, {
+        method: "POST",
+      });
+
+      const data = await res.json();
+
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
+        amount: data.amount,
+        currency: data.currency,
+        name: "My LMS Platform",
+        description: data.course.title,
+        order_id: data.orderId,
+        prefill: {
+          name: data.user.name,
+          email: data.user.email,
+        },
+        handler: async function (response: any) {
+          // Verify payment
+          const verifyRes = await fetch(
+            `/api/courses/${courseId}/verify-payment`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                ...response,
+                courseId,
+              }),
+            }
+          );
+
+          if (verifyRes.ok) {
+            window.location.href = `/courses/${courseId}?success=1`;
+          } else {
+            toast.error("Payment verification failed");
+          }
+        },
+        theme: {
+          color: "#6366f1",
+        },
+      };
+
+      const razorpay = new (window as any).Razorpay(options);
+      razorpay.open();
+    } catch (error) {
+      console.error(error);
       toast.error("Something went wrong");
     } finally {
       setIsLoading(false);
